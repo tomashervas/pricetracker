@@ -87,8 +87,48 @@ const fetchProductMercadona = async (url) => {
         await browser.close();
     }
 }
+
+
+const searchProductsConsum = async (url) => {
+    const browser = await puppeteer.launch({headless: false});
+    try {
+        const page = await browser.newPage();
+        await page.setViewport({
+            width: 1200,
+            height: 800,
+            deviceScaleFactor: 1,
+          });
+        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.waitForTimeout(3000)
+        const products = await page.$$eval('div.widget-prod', divs => {
+            return divs.map(div => {
+                return {
+                    brand: div.querySelector('#grid-widget--brand') ? div.querySelector('#grid-widget--brand').innerText : null,
+                    name: div.querySelector('#grid-widget--descr').innerText,
+                    price: div.querySelector('#grid-widget--price').innerText,
+                    offerPrice: div.querySelector('#grid-widget--offerprice') ? div.querySelector('#grid-widget--offerprice').innerText : null,
+                    unitpPrice: div.querySelector('div.widget-prod__info-unitprice > p').innerText,
+                    code: div.querySelector('#grid-widget--descr').href.split('/').pop(),
+                }
+            })
+        });
+        console.log(products)
+
+       
+        
+    } catch (error) {
+        console.log(error);
+    } finally {
+        await browser.close();
+    }
+    
+}
+
 //fetchProductConsum('https://tienda.consum.es/es/p/huevo-campero-m-decena/7359040')
 //fetchProductMercadona('https://tienda.mercadona.es/product/4717')
+searchProductsConsum('https://tienda.consum.es/es/s/leche?orderById=7&page=1')
 
 //#root > div.blank-layout > div.blank-layout__content > div > div.private-product-detail__content > div.private-product-detail__right > div.product-format.product-format__size > span:nth-child(3)
-
+//#header__main--searcher
+//#grid-widget-15691 > div
+//#grid-widget-5126 > div > div.d-flex.flex-column.flex-grow-1.w-100.widget-prod__body.ng-tns-c256-262 > div.widget-prod__info.u-pointer.ng-tns-c256-262 > div.widget-prod__info-unitprice.ng-tns-c256-262
