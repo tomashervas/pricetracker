@@ -89,7 +89,8 @@ const fetchProductMercadona = async (url) => {
 }
 
 
-const searchProductsConsum = async (url) => {
+const searchProductsConsum = async (product) => {
+    const url = `https://tienda.consum.es/es/s/${product}?orderById=7&page=1`
     const browser = await puppeteer.launch({headless: false});
     try {
         const page = await browser.newPage();
@@ -99,7 +100,7 @@ const searchProductsConsum = async (url) => {
             deviceScaleFactor: 1,
           });
         await page.goto(url, { waitUntil: 'networkidle2' });
-        await page.waitForTimeout(3000)
+        //await page.waitForTimeout(3000)
         const products = await page.$$eval('div.widget-prod', divs => {
             return divs.map(div => {
                 return {
@@ -113,9 +114,55 @@ const searchProductsConsum = async (url) => {
             })
         });
         console.log(products)
+        return products;
 
-       
-        
+    } catch (error) {
+        console.log(error);
+    } finally {
+        await browser.close();
+    }
+    
+}
+
+const searchProductsMercadona = async (product) => {
+    const url = `https://tienda.mercadona.es/search-results?query=${product}`
+    const browser = await puppeteer.launch({headless: false});
+    try {
+        const page = await browser.newPage();
+        await page.setViewport({
+            width: 1200,
+            height: 800,
+            deviceScaleFactor: 1,
+          });
+        await page.goto(url, { waitUntil: 'networkidle2' });
+        await page.type('div > input[name="postalCode"]', (Math.floor(Math.random() * 26) + 46001).toString(), {delay: 100});
+        await page.click('aria/Continuar')
+        await new Promise(resolve => setTimeout(resolve, 250));
+        const products = await page.evaluate( async () => {
+            const productDivs = document.querySelectorAll('div[data-test=product-cell]')
+            const result = [];
+            const length = productDivs.length < 10 ? productDivs.length : 10;
+            for (let i = 0; i < length; i++) {
+                const product = {};
+                product.name = productDivs[i].querySelector('h4').innerText;
+                product.price = productDivs[i].querySelector('p[data-test=product-price]').innerText;
+                // Hacer clic en el botón para abrir el modal
+                await productDivs[i].querySelector('button[data-test=open-product-detail]').click();
+                // Esperar a que el modal se abra completamente
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const modal = document.querySelector('div[data-test=private-product-detail-info]');
+                product.unitPrice = modal.querySelector('div.product-format').innerText
+                product.code = window.location.href.split('/')[window.location.href.split('/').length - 2]
+                result.push(product);
+
+            }
+            return result;
+          });
+          
+          console.log(products)
+          return products;
+
     } catch (error) {
         console.log(error);
     } finally {
@@ -126,7 +173,8 @@ const searchProductsConsum = async (url) => {
 
 //fetchProductConsum('https://tienda.consum.es/es/p/huevo-campero-m-decena/7359040')
 //fetchProductMercadona('https://tienda.mercadona.es/product/4717')
-searchProductsConsum('https://tienda.consum.es/es/s/leche?orderById=7&page=1')
+//searchProductsConsum('entrecot')
+searchProductsMercadona('colonia infantil')
 
 //#root > div.blank-layout > div.blank-layout__content > div > div.private-product-detail__content > div.private-product-detail__right > div.product-format.product-format__size > span:nth-child(3)
 //#header__main--searcher
